@@ -26,14 +26,16 @@ export default function App() {
       {!isAdmin ? (
         <div>
           <h1>Welcome User</h1>
+          <h2>Are you a vendor? Log in here!</h2>
           <input
             type="password"
-            placeholder="Enter admin password"
+            placeholder="Enter vendor password"
             value={passwordInput}
             onChange={(e) => setPasswordInput(e.target.value)}
             style={{ marginRight: "0.5rem" }}
           />
-          <button onClick={handleLogin}>Login as Admin</button>
+          <button onClick={handleLogin}>Login as Vendor</button>
+          <div style={{height: "3rem"}}></div>
           <Home />
         </div>
       ) : (
@@ -43,7 +45,7 @@ export default function App() {
           <CardLookup />
           <button
             onClick={handleBack}
-            style={{ marginTop: "1rem", background: "#eee", padding: "0.5rem" }}
+            style={{ marginTop: "1rem", background: "#f00000", padding: "0.5rem" }}
           >
             Back to User
           </button>
