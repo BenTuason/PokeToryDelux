@@ -38,9 +38,9 @@ export default function App() {
         </div>
       ) : (
         <div>
+          <Admin />
           <h1>Admin Panel</h1>
           <CardLookup />
-          <Admin />
           <button
             onClick={handleBack}
             style={{ marginTop: "1rem", background: "#eee", padding: "0.5rem" }}

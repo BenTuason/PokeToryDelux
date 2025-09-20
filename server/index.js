@@ -9,7 +9,25 @@ app.use(express.json());
 // Configure the SDK with your API key
 pokemon.configure({ apiKey: "<YOUR_API_KEY>" });
 
-// Lookup card by ID (only essential fields)
+// Search cards by Pokémon name (fast, essential fields)
+app.get("/api/search", async (req, res) => {
+  const { name } = req.query;
+  if (!name) return res.status(400).json({ error: "Missing name parameter" });
+
+  try {
+    const result = await pokemon.card.where({
+      q: `name:${name}`,
+      pageSize: 25, // limit to 25 results to stay fast
+      select: "id,name,set,images,rarity,tcgplayer", // only essential fields
+    });
+    res.json({ data: result.data });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Failed to search cards" });
+  }
+});
+
+// Get a single card by ID (fast, essential fields)
 app.get("/api/card/:id", async (req, res) => {
   const cardId = req.params.id;
   try {
@@ -23,21 +41,21 @@ app.get("/api/card/:id", async (req, res) => {
   }
 });
 
-// Search cards by name (only essential fields, limit to 50 results)
-app.get("/api/search", async (req, res) => {
-  const { name } = req.query;
-  if (!name) return res.status(400).json({ error: "Missing name parameter" });
+// Lookup card by set + collector number (fast, unique result)
+app.get("/api/lookup", async (req, res) => {
+  const { set, number } = req.query; // e.g., ?set=rc&number=20
+  if (!set || !number) return res.status(400).json({ error: "Missing set or number" });
 
   try {
     const result = await pokemon.card.where({
-      q: `name:${name}`,
-      pageSize: 50,
+      q: `set.id:${set} number:${number}`,
+      pageSize: 1, // only 1 result, collector numbers are unique
       select: "id,name,set,images,rarity,tcgplayer",
     });
-    res.json({ data: result.data });
+    res.json({ data: result.data[0] || null });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ error: "Failed to search cards" });
+    res.status(500).json({ error: "Failed to fetch card by number" });
   }
 });
 
