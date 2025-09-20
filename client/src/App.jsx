@@ -1,21 +1,54 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Home from "./components/Home.jsx";
+import Admin from "./components/Admin.jsx";
+import CardLookup from "./components/CardLookup.jsx";
 
-function App() {
-  const [message, setMessage] = useState("");
+export default function App() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const ADMIN_PASSWORD = "supersecret";
 
-  useEffect(() => {
-    fetch("http://localhost:5000/api/hello")
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch((err) => console.error(err));
-  }, []);
+  const handleLogin = () => {
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAdmin(true);
+      setPasswordInput("");
+    } else {
+      alert("Wrong password!");
+    }
+  };
+
+  const handleBack = () => {
+    setIsAdmin(false);
+  };
 
   return (
-    <div>
-      <h1>React + Node Example</h1>
-      <p>{message}</p>
+    <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
+      {!isAdmin ? (
+        <div>
+          <h1>Welcome User</h1>
+          <input
+            type="password"
+            placeholder="Enter admin password"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            style={{ marginRight: "0.5rem" }}
+          />
+          <button onClick={handleLogin}>Login as Admin</button>
+          <Home />
+        </div>
+      ) : (
+        <div>
+          <h1>Admin Panel</h1>
+          <CardLookup />
+          <Admin />
+          <button
+            onClick={handleBack}
+            style={{ marginTop: "1rem", background: "#eee", padding: "0.5rem" }}
+          >
+            Back to User
+          </button>
+        </div>
+      )}
     </div>
   );
 }
-
-export default App;
