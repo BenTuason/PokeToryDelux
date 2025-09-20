@@ -63,60 +63,45 @@ export default function CardLookup() {
         </button>
       </div>
 
-      {/* Set + Number lookup */}
-      <div style={{ marginBottom: "1rem" }}>
-        <input
-          type="text"
-          placeholder="Set ID (e.g., rc)"
-          value={setNumber.set}
-          onChange={(e) => setSetNumber({ ...setNumber, set: e.target.value })}
-          style={{ marginRight: "0.5rem" }}
-        />
-        <input
-          type="text"
-          placeholder="Collector Number (e.g., 20)"
-          value={setNumber.number}
-          onChange={(e) => setSetNumber({ ...setNumber, number: e.target.value })}
-          style={{ marginRight: "0.5rem" }}
-        />
-        <button onClick={handleLookup} disabled={loading}>
-          {loading ? "Looking up..." : "Lookup"}
-        </button>
-      </div>
+      
 
       {/* Display all cards */}
-      {results.length > 0 && (
-        <div style={{ marginTop: "1rem" }}>
-          <h3>Results:</h3>
-          {results.map((card) => (
-            <div
-              key={card.id}
-              style={{
-                border: "1px solid #ccc",
-                padding: "0.5rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <h4>{card.name}</h4>
-              <p>
-                Set: {card.set?.name} | ID: <strong>{card.id}</strong> | Rarity:{" "}
-                {card.rarity || "N/A"}
-              </p>
-              {card.images?.small && (
-                <img src={card.images.small} alt={card.name} />
-              )}
-              {card.tcgplayer?.prices?.holofoil && (
-                <p>Market Price: ${card.tcgplayer.prices.holofoil.market}</p>
-              )}
-              {card.tcgplayer?.url && (
-                <a href={card.tcgplayer.url} target="_blank" rel="noreferrer">
-                  View on TCGPlayer
-                </a>
-              )}
-            </div>
+{results.length > 0 && (
+  <div style={{ marginTop: "1rem" }}>
+    <h3>Results:</h3>
+    {results.map((card) => (
+      <div
+        key={card.id}
+        style={{
+          border: "1px solid #ccc",
+          padding: "0.5rem",
+          marginBottom: "0.5rem",
+        }}
+      >
+        <h4>{card.name}</h4>
+        <p>
+          Set: {card.set?.name} | ID: <strong>{card.id}</strong> | Rarity:{" "}
+          {card.rarity || "N/A"}
+        </p>
+
+        {/* Display all TCGPlayer prices */}
+        {card.tcgplayer?.prices &&
+          Object.entries(card.tcgplayer.prices).map(([variant, data]) => (
+            <p key={variant}>
+              {variant} Market Price: ${data.market ?? "N/A"} | Near Mint: $
+              {data?.["holofoil"]?.market ?? data.market ?? "N/A"}
+            </p>
           ))}
-        </div>
-      )}
+
+        {card.tcgplayer?.url && (
+          <a href={card.tcgplayer.url} target="_blank" rel="noreferrer">
+            View on TCGPlayer
+          </a>
+        )}
+      </div>
+    ))}
+  </div>
+)}
     </div>
   );
 }

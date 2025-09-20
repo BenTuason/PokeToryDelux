@@ -9,7 +9,7 @@ app.use(express.json());
 // Configure the SDK with your API key
 pokemon.configure({ apiKey: "<YOUR_API_KEY>" });
 
-// Search cards by Pokémon name (fast, essential fields)
+// Search cards by PokÃ©mon name (fast, essential fields)
 app.get("/api/search", async (req, res) => {
   const { name } = req.query;
   if (!name) return res.status(400).json({ error: "Missing name parameter" });
@@ -17,8 +17,8 @@ app.get("/api/search", async (req, res) => {
   try {
     const result = await pokemon.card.where({
       q: `name:${name}`,
-      pageSize: 25, // limit to 25 results to stay fast
-      select: "id,name,set,images,rarity,tcgplayer", // only essential fields
+      pageSize: 250,
+      select: "id,name,set,rarity,tcgplayer", // only essential fields
     });
     res.json({ data: result.data });
   } catch (err) {
@@ -32,7 +32,7 @@ app.get("/api/card/:id", async (req, res) => {
   const cardId = req.params.id;
   try {
     const card = await pokemon.card.find(cardId, {
-      select: "id,name,set,images,rarity,tcgplayer",
+      select: "id,name,set,rarity,tcgplayer",
     });
     res.json({ data: card });
   } catch (err) {
@@ -50,7 +50,7 @@ app.get("/api/lookup", async (req, res) => {
     const result = await pokemon.card.where({
       q: `set.id:${set} number:${number}`,
       pageSize: 1, // only 1 result, collector numbers are unique
-      select: "id,name,set,images,rarity,tcgplayer",
+      select: "id,name,set,rarity,tcgplayer",
     });
     res.json({ data: result.data[0] || null });
   } catch (err) {
