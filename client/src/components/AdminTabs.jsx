@@ -218,25 +218,6 @@ export default function AdminTabs() {
             </div>
           )}
 
-          {/* --- Display binder preview --- */}
-          {currentBinder && binders[currentBinder] && (
-            <div style={{ marginTop: "2rem" }}>
-              <h3>{currentBinder} Contents ({binders[currentBinder].length})</h3>
-              <ul>
-                {binders[currentBinder].map((card, idx) => {
-                  // Get the market price (use the first available price)
-                  const priceEntry = card.tcgplayer?.prices ? Object.entries(card.tcgplayer.prices)[0] : null;
-                  const marketPrice = priceEntry ? priceEntry[1].market : "N/A";
-                  
-                  return (
-                    <li key={idx}>
-                      {card.name} | {card.set?.name} | ID: {card.id} | Price: ${marketPrice}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
         </div>
       )}
 
