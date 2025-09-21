@@ -3,6 +3,7 @@ import cors from "cors";
 import pokemon from "pokemontcgsdk";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import cardsRouter from "./routes/cards.js";
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ mongoose.connect(process.env.MONGO_URI)
 const app = express();
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(express.json());
+app.use("/api/cards", cardsRouter);
 
 pokemon.configure({ apiKey: "<YOUR_API_KEY>" });
 
