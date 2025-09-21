@@ -1,6 +1,23 @@
 import express from "express";
 import cors from "cors";
 import pokemon from "pokemontcgsdk";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+
+dotenv.config();
+
+// connect to MongoDB
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('connected to database')
+    // listen to requests from port
+    app.listen(process.env.PORT, () => {
+      console.log('listening for requests on port', process.env.PORT)
+    })
+  })
+  .catch((err) => {
+    console.log(err)
+  }) 
 
 const app = express();
 app.use(cors({ origin: "http://localhost:5173" }));
@@ -55,7 +72,6 @@ app.get("/api/lookup", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch card by number" });
   }
 });
-
 
 
 
