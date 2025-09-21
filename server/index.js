@@ -7,6 +7,11 @@ import cardsRouter from "./routes/cards.js";
 
 dotenv.config();
 
+const app = express();
+app.use(cors({ origin: "http://localhost:5173" }));
+app.use(express.json());
+app.use("/api/cards", cardsRouter);
+
 // connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
@@ -20,10 +25,6 @@ mongoose.connect(process.env.MONGO_URI)
     console.log(err)
   }) 
 
-const app = express();
-app.use(cors({ origin: "http://localhost:5173" }));
-app.use(express.json());
-app.use("/api/cards", cardsRouter);
 
 pokemon.configure({ apiKey: "<YOUR_API_KEY>" });
 
