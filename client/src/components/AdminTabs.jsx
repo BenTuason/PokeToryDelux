@@ -2,18 +2,25 @@ import { useState } from "react";
 import axios from "axios";
 
 export default function AdminTabs() {
-  const [tab, setTab] = useState("add"); // "add" or "inventory"
-
-  // --- Card Lookup state ---
+  const [tab, setTab] = useState("add");
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [binders, setBinders] = useState({});
+  const [currentBinder, setCurrentBinder] = useState("");
+  const [newBinderName, setNewBinderName] = useState("");
+  const [addedCardFeedback, setAddedCardFeedback] = useState(null);
+  const [editingCard, setEditingCard] = useState(null); // Track which card is being edited
 
-  // --- Binder state ---
-  const [binders, setBinders] = useState({}); // { binderName: [cards] }
-  const [currentBinder, setCurrentBinder] = useState(""); // name of binder to add cards
-  const [newBinderName, setNewBinderName] = useState(""); // for creating new binders
-  const [addedCardFeedback, setAddedCardFeedback] = useState(null); // for showing feedback
+  // Price multipliers for different conditions
+  const conditionMultipliers = {
+    "Mint": 1.0,
+    "Near Mint": 0.9,
+    "Lightly Played": 0.7,
+    "Moderately Played": 0.5,
+    "Heavily Played": 0.3,
+    "Damaged": 0.1
+  };
 
   const handleSearch = async () => {
     if (!searchTerm) return;
@@ -59,7 +66,6 @@ export default function AdminTabs() {
       return;
     }
 
-    // Check if card already exists in this binder
     const existingBinder = binders[currentBinder] || [];
     const cardExists = existingBinder.some(c => c.id === card.id);
     
@@ -68,17 +74,169 @@ export default function AdminTabs() {
       return;
     }
 
+    // Add default properties to the card
+    const enhancedCard = {
+      ...card,
+      quantity: 1,
+      condition: "Near Mint",
+      grade: null,
+      customPrice: null
+    };
+
     setBinders((prev) => {
       const existing = prev[currentBinder] || [];
       return {
         ...prev,
-        [currentBinder]: [...existing, card],
+        [currentBinder]: [...existing, enhancedCard],
       };
     });
     
-    // Show feedback
     setAddedCardFeedback(`${card.name} added to ${currentBinder}!`);
     setTimeout(() => setAddedCardFeedback(null), 3000);
+  };
+
+  const removeCard = (binderName, cardId) => {
+    setBinders(prev => ({
+      ...prev,
+      [binderName]: prev[binderName].filter(card => card.id !== cardId)
+    }));
+  };
+
+  const updateCard = (binderName, cardId, updates) => {
+    setBinders(prev => ({
+      ...prev,
+      [binderName]: prev[binderName].map(card => 
+        card.id === cardId ? { ...card, ...updates } : card
+      )
+    }));
+    setEditingCard(null); // Close edit mode after update
+  };
+
+  const calculateAdjustedPrice = (card, condition, grade) => {
+    const priceEntry = card.tcgplayer?.prices ? Object.entries(card.tcgplayer.prices)[0] : null;
+    const basePrice = priceEntry ? priceEntry[1].market : 0;
+    
+    let adjustedPrice = basePrice;
+    
+    // Apply condition multiplier
+    if (condition && conditionMultipliers[condition]) {
+      adjustedPrice *= conditionMultipliers[condition];
+    }
+    
+    // Apply grade multiplier (graded cards typically command premium)
+    if (grade) {
+      const gradeNum = parseInt(grade);
+      if (gradeNum >= 9) adjustedPrice *= 2.5; // PSA 9-10 get premium
+      else if (gradeNum >= 7) adjustedPrice *= 1.5; // PSA 7-8 get moderate premium
+    }
+    
+    return adjustedPrice.toFixed(2);
+  };
+
+  const startEditing = (binderName, card) => {
+    setEditingCard({ binderName, ...card });
+  };
+
+  const CardEditForm = ({ card, binderName, onSave, onCancel }) => {
+    const [formData, setFormData] = useState({
+      quantity: card.quantity || 1,
+      condition: card.condition || "Near Mint",
+      grade: card.grade || "",
+      customPrice: card.customPrice || ""
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      const updates = { ...formData };
+      
+      // Calculate adjusted price if not using custom price
+      if (!updates.customPrice) {
+        const adjustedPrice = calculateAdjustedPrice(card, updates.condition, updates.grade);
+        updates.adjustedPrice = parseFloat(adjustedPrice);
+      } else {
+        updates.adjustedPrice = parseFloat(updates.customPrice);
+      }
+      
+      onSave(binderName, card.id, updates);
+    };
+
+    return (
+      <div style={{
+        border: "2px solid #007bff",
+        padding: "1rem",
+        margin: "1rem 0",
+        borderRadius: "8px",
+        backgroundColor: "#f8f9fa"
+      }}>
+        <h4>Edit Card: {card.name}</h4>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: "1rem" }}>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>
+              Quantity:
+              <input
+                type="number"
+                min="1"
+                value={formData.quantity}
+                onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value)})}
+                style={{ marginLeft: "0.5rem", padding: "0.25rem" }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: "1rem" }}>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>
+              Condition:
+              <select
+                value={formData.condition}
+                onChange={(e) => setFormData({...formData, condition: e.target.value})}
+                style={{ marginLeft: "0.5rem", padding: "0.25rem" }}
+              >
+                {Object.keys(conditionMultipliers).map(cond => (
+                  <option key={cond} value={cond}>{cond}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div style={{ marginBottom: "1rem" }}>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>
+              Grade (PSA/BGS):
+              <input
+                type="text"
+                placeholder="e.g., PSA 10"
+                value={formData.grade}
+                onChange={(e) => setFormData({...formData, grade: e.target.value})}
+                style={{ marginLeft: "0.5rem", padding: "0.25rem" }}
+              />
+            </label>
+          </div>
+
+          <div style={{ marginBottom: "1rem" }}>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>
+              Custom Price ($):
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Override calculated price"
+                value={formData.customPrice}
+                onChange={(e) => setFormData({...formData, customPrice: e.target.value})}
+                style={{ marginLeft: "0.5rem", padding: "0.25rem" }}
+              />
+            </label>
+          </div>
+
+          <div>
+            <button type="submit" style={{ marginRight: "1rem", padding: "0.5rem", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px" }}>
+              Save Changes
+            </button>
+            <button type="button" onClick={onCancel} style={{ padding: "0.5rem", backgroundColor: "#6c757d", color: "white", border: "none", borderRadius: "4px" }}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    );
   };
 
   return (
@@ -217,40 +375,107 @@ export default function AdminTabs() {
               </div>
             </div>
           )}
-
         </div>
       )}
 
       {/* --- Inventory Tab --- */}
-{tab === "inventory" && (
-  <div>
-    <h2>Inventory</h2>
-    {Object.keys(binders).length === 0 ? (
-      <p>No binders created yet. Go to the "Add Cards" tab to create binders and add cards.</p>
-    ) : (
-      <div>
-        {Object.entries(binders).map(([binderName, cards]) => (
-          <div key={binderName} style={{ marginBottom: "1.5rem" }}>
-            <h3>{binderName} ({cards.length} cards)</h3>
-            <ul>
-              {cards.map((card, idx) => {
-                // Get the market price (use the first available price)
-                const priceEntry = card.tcgplayer?.prices ? Object.entries(card.tcgplayer.prices)[0] : null;
-                const marketPrice = priceEntry ? priceEntry[1].market : "N/A";
-                
-                return (
-                  <li key={idx}>
-                    {card.name} | {card.set?.name} | ID: {card.id} | Price: ${marketPrice}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
+      {tab === "inventory" && (
+        <div>
+          <h2>Inventory Management</h2>
+          {Object.keys(binders).length === 0 ? (
+            <p>No binders created yet. Go to the "Add Cards" tab to create binders and add cards.</p>
+          ) : (
+            <div>
+              {Object.entries(binders).map(([binderName, cards]) => (
+                <div key={binderName} style={{ 
+                  marginBottom: "2rem", 
+                  border: "1px solid #ccc", 
+                  padding: "1.5rem", 
+                  borderRadius: "8px" 
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                    <h3>{binderName} ({cards.length} cards)</h3>
+                    <button 
+                      onClick={() => {
+                        if (window.confirm(`Delete entire ${binderName} binder?`)) {
+                          setBinders(prev => {
+                            const newBinders = { ...prev };
+                            delete newBinders[binderName];
+                            return newBinders;
+                          });
+                        }
+                      }}
+                      style={{ padding: "0.5rem", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px" }}
+                    >
+                      Delete Binder
+                    </button>
+                  </div>
+                  
+                  {cards.map((card, idx) => (
+                    <div key={idx} style={{
+                      border: "1px solid #eee",
+                      padding: "1rem",
+                      marginBottom: "1rem",
+                      borderRadius: "4px",
+                      position: "relative"
+                    }}>
+                      {editingCard && editingCard.id === card.id ? (
+                        <CardEditForm
+                          card={card}
+                          binderName={binderName}
+                          onSave={updateCard}
+                          onCancel={() => setEditingCard(null)}
+                        />
+                      ) : (
+                        <>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <div style={{ flex: 1 }}>
+                              <h4 style={{ margin: "0 0 0.5rem 0" }}>{card.name}</h4>
+                              <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
+                                Set: {card.set?.name} | ID: {card.id} | Rarity: {card.rarity || "N/A"}
+                              </p>
+                              <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
+                                Quantity: {card.quantity} | Condition: {card.condition}
+                                {card.grade && ` | Grade: ${card.grade}`}
+                              </p>
+                              <p style={{ margin: "0.25rem 0", fontSize: "0.9rem", fontWeight: "bold" }}>
+                                Price: ${card.adjustedPrice || calculateAdjustedPrice(card, card.condition, card.grade)}
+                              </p>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                              <button 
+                                onClick={() => startEditing(binderName, card)}
+                                style={{ padding: "0.25rem 0.5rem", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px", fontSize: "0.8rem" }}
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  if (window.confirm(`Remove ${card.name} from ${binderName}?`)) {
+                                    removeCard(binderName, card.id);
+                                  }
+                                }}
+                                style={{ padding: "0.25rem 0.5rem", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px", fontSize: "0.8rem" }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                          {card.tcgplayer?.url && (
+                            <a href={card.tcgplayer.url} target="_blank" rel="noreferrer" style={{ fontSize: "0.8rem", color: "blue", display: "block", marginTop: "0.5rem" }}>
+                              View on TCGPlayer
+                            </a>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
