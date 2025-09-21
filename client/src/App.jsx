@@ -6,6 +6,7 @@ import CardLookup from "./components/CardLookup.jsx";
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
+  const [binders, setBinders] = useState({}); // Add binders state here
   const ADMIN_PASSWORD = "supersecret";
 
   const handleLogin = () => {
@@ -36,12 +37,13 @@ export default function App() {
           />
           <button onClick={handleLogin}>Login as Vendor</button>
           <div style={{height: "3rem"}}></div>
-          <Home />
+          {/* Pass binders to Home component */}
+          <Home binders={binders} />
         </div>
       ) : (
         <div>
-          <Admin />
-          <h1>Admin Panel</h1>
+          {/* Pass binders and setBinders to Admin component */}
+          <Admin binders={binders} setBinders={setBinders} />
           <CardLookup />
           <button
             onClick={handleBack}
