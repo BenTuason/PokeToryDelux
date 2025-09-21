@@ -2,6 +2,7 @@ import { useState } from "react";
 import Home from "./components/Home.jsx";
 import Admin from "./components/Admin.jsx";
 import CardLookup from "./components/CardLookup.jsx";
+import pokeball from "./assets/img/pokeball.png";
 
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -25,6 +26,7 @@ export default function App() {
     <div style={{ padding: "2rem", fontFamily: "sans-serif" }}>
       {!isAdmin ? (
         <div>
+          <img src={pokeball} alt="Pokeball" width="300" length="300" style={{marginLeft: "23px"}}/>
           <h1>Welcome User</h1>
           <h2>Are you a vendor? Log in here!</h2>
           <input
